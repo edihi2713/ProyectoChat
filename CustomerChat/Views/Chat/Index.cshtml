@@ -1,0 +1,88 @@
+﻿@model CustomerChat.Models.CustomerRequestViewModel
+
+<style>
+    #chatMainWindow {
+        width: 500px;
+        height: 1000px;
+        background-color: #e4ffdb;
+        display: none;
+    }
+ </style>
+
+@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+
+<div class="jumbotron" id="divWelcomeCustomer" >
+  <h2>Welcome @Model.CustomerName</h2>
+  <p class="lead">This is a simple hero unit, a simple jumbotron-style component for calling extra attention to featured content or information.</p>
+  <hr class="my-4">
+  <p>It uses utility classes for typography and spacing to space content out within the larger container.</p>
+  <a class="btn btn-primary btn-lg" href="/Home/Index" role="button">Return</a>
+</div>
+
+<div class="jumbotron" id="divWelcomeAgent" >
+    <h2>Hello Agent</h2>
+</div>
+
+
+
+<div id="chatMainWindow">
+
+</div>
+
+<script type="text/javascript">
+
+
+    var agentAvailable = null;
+    var agentFound = false;
+    var intents = 0;
+    var recurrente;
+    
+
+    var checkAgent = function () {
+        $.ajax({
+            url: "/Chat/GetAvailableAgent",
+            data: { idRequest: '@Model.RequestId' },
+                success: function (data) {
+                    if (!data.result) {
+
+                        agentAvailable = data.data;
+                        clearInterval(recurrente);
+                        retrieveAgentInfo(agentAvailable);
+
+                    } else {
+                        intents++;
+
+                        console.log("1");
+                        if (intents == 10) {
+                            clearInterval(recurrente);
+                            retrieveAgentInfo(null);
+                            alert("No Agents Available, please wait a little bit longer...");
+                        }
+                    }
+                },
+                error: function (err) {
+                    alert("An error has occured...")
+                    console.log(err);
+                }
+            });
+    };
+
+
+    function retrieveAgentInfo(agentAvailable, intents) {
+        console.log(agentAvailable);
+    }
+
+    $(function () {
+
+        var countInt = parseInt('@Model.IdAgent');
+        // it means this is a customer, thats why we need to search an agent
+        if (countInt == 0) {
+            $('#divWelcomeAgent').css('display', 'none');
+            recurrente =  setInterval(checkAgent, 1000);
+        }
+    });
+</script>
