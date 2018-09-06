@@ -5,9 +5,10 @@
    
         background-color: slategray;
         display: none;
-        height: 150px;
+        height: 100px;
         width: 750px;
         padding: 10px;
+        border-radius:5px;
     }
 
   
@@ -23,6 +24,12 @@
         text-align: right;
         width: 750px;
     }
+
+    #customerInfoForAgent {
+        display:none;
+        width: 750px;
+    }
+
 
 
  </style>
@@ -41,34 +48,47 @@
   <a class="btn btn-primary btn-lg" href="/Home/Index" role="button">Return</a>
 </div>
 
-<div class="jumbotron" id="divWelcomeAgent" >
+<div id="divWelcomeAgent" >
     <h2>Hello Agent</h2>
 </div>
 
+<div id="customerInfoForAgent" class="col-md-6">
+
+</div>
 
 
 <div id="chatMainWindow">
-    <div class="input-group boton">
+    
+</div>
+
+<div class="input-group boton messageControls" style="width:750px;">
         <input type="text" id="messageText" class="form-control" placeholder="Typer your message" aria-label="Recipient's username" aria-describedby="button-addon2">
         <div class="input-group-append">
             <button class="btn btn-outline-primary" type="button" id="sendMessage">Send</button>
         </div>
     </div>
-</div>
 
 
 
     
 <script type="text/javascript">
 
-
-
     var countInt = parseInt('@Model.IdAgent');
     var agentAvailable = null;
     var agentFound = false;
     var intents = 0;
+
+    // it stores the id where the message from both sides are gonna be.
+    var idConversation = 0;
+    var customerNameDisplay;
+
+    // Function that searchs an agent for a customer.
     var recurrente;
 
+    //function that is constanly 
+    var recurrentAgent;
+
+    var sizeIncrement = 1;
     var chatwindow = $('#chatMainWindow');
 
 
@@ -80,39 +100,59 @@
                     if (data.result) {
 
                         agentAvailable = data.data;
+
                         clearInterval(recurrente);
-                        retrieveAgentInfo(agentAvailable);
+                        retrieveAgentInfo(agentAvailable, data.idRequestAgent);
 
                     } else {
                         intents++;
 
-                        console.log("1");
-                        if (intents == 10) {
+                        console.log(intents);
+                        if (intents == 50) {
                             clearInterval(recurrente);
-                            retrieveAgentInfo(null);
+                            retrieveAgentInfo(null,0);
                             alert("No Agents Available, please wait a little bit longer...");
                         }
                     }
                 },
                 error: function (err) {
-                    alert("An error has occured...")
+                    alert("An error has occured...");
+                    clearInterval(recurrente);
                     console.log(err);
                 }
             });
     };
 
 
+    var checkUser = function () {
+
+        $.ajax({
+            url: "/Chat/getCustomer",
+            data: { idAgent: '@Model.IdAgent' },
+            success: function (data) {
+                if (data.isAgentRequested) {
+
+                    clearInterval(recurrentAgent);
+                    retrieveCustomerInfo(data.customerName, data.requestAgent);
+                }
+            },
+            error: function (err) {
+                alert("An error has occured fetching the customer info...");
+                clearInterval(recurrentAgent);
+                console.log(err);
+            }
+            });
+
+    }
+
     function sendMessageButton() {
 
+        var divHeight = (sizeIncrement * 48 ) + 100;
 
+        alert(divHeight);
 
-        var size = chatwindow.height();
+        chatwindow.css("height", divHeight + 'px');
 
-        alert(chatwindow.height());
-
-        chatwindow.css("height", size+ 'px' );
-
-        
         var sender = "customer";
         if (countInt != 0) {
             sender = "agent";
@@ -121,13 +161,31 @@
         createMessage(sender, $('#messageText').val());
 
         $('#messageText').val("");
+
+        sizeIncrement++;
     }
 
-    function retrieveAgentInfo(agentAvailable, intents) {
+    function retrieveCustomerInfo(customerDisplayName,conversationId) {
+
+        idConversation = conversationId;
+        $('#customerInfoForAgent').append("<div class='alert alert-primary' role='alert'> You have been asigned to  " + customerDisplayName + "  </div>");
+
+        $('#customerInfoForAgent').css('display', 'inline');
+        chatwindow.css('display', 'inline-block');
+        console.log(conversationId);
+    }
+    function retrieveAgentInfo(agentAvailable,conversationId) {
 
 
         console.log(agentAvailable);
+        console.log(idConversation);
+
+        idConversation = conversationId;
         debugger;
+
+        if (agentAvailable == null) {
+            return;
+        }
 
         var chatLi = document.createElement("div");
 
@@ -136,7 +194,7 @@
 
 
         chatwindow.prepend(chatLi);
-        chatwindow.css('display', 'block');
+        chatwindow.css('display', 'inline-block');
 
 
         createMessage("agent", "It is nice to talk to you " + '@Model.CustomerName' + " please tell me how can I help you");
@@ -154,7 +212,34 @@
             name = agentAvailable.AgentName;
         }
 
-        $('#ulidChat').append("<div class=" + sender + "> <strong> " + name + " says: </strong> <br> " + message + " </div> </hr>")
+        var messa = {
+            Message:message,
+            from: sender,
+            IdConversation: idConversation,
+            Read: false
+        }
+
+
+        var obj = { message: messa };
+
+        var data2send = JSON.stringify(obj);
+
+        $.ajax({
+            type: "POST",
+            url: 'Chat/BroadCastMessage',
+            data: data2send,
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: function (arg) { //call successfull
+
+            },
+            error: function (xhr) {
+                //error occurred
+            }
+        });
+
+
+        //$('#ulidChat').append("<div class=" + sender + "> <strong> " + name + " says: </strong> <br> " + message + " </div>")
 
     }
 
@@ -164,11 +249,21 @@
         // it means this is a customer, thats why we need to search an agent
         if (countInt == 0) {
             $('#divWelcomeAgent').css('display', 'none');
-            recurrente =  setInterval(checkAgent, 1000);
+            recurrente = setInterval(checkAgent, 1000);
+        } else {
+
+            recurrentAgent = setInterval(checkUser, 2000);
+            //$('.messageControls').css('display', 'none')
         }
 
         $('#sendMessage').on('click', function () {
             sendMessageButton();
         });
+
+        if (countInt == 0) {
+            $('#menu').css('display', 'none');
+            $('#login').css('display', 'none');
+        }
+
     });
 </script>

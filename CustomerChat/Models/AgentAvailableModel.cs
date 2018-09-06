@@ -5,12 +5,10 @@ using System.Web;
 
 namespace CustomerChat.Models
 {
-    public class Agent
+    public class AgentAvailableModel
     {
         public int AgentId { get; set; }
-        public string AgentUser { get; set; }
-        public string AgentDocument { get; set; }
         public string AgentName { get; set; }
-        public bool isAvailable { get; set; }
+        public bool Available { get; set; }
     }
 }
