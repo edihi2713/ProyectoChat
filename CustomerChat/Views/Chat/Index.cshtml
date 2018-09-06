@@ -2,11 +2,29 @@
 
 <style>
     #chatMainWindow {
-        width: 500px;
-        height: 1000px;
-        background-color: #e4ffdb;
+   
+        background-color: slategray;
         display: none;
+        height: 150px;
+        width: 750px;
+        padding: 10px;
     }
+
+  
+    
+    .agent {
+        float: left;
+        text-align: left;
+        width: 750px;
+    }
+
+    .customer {
+        float: right;
+        text-align: right;
+        width: 750px;
+    }
+
+
  </style>
 
 @{
@@ -30,24 +48,36 @@
 
 
 <div id="chatMainWindow">
-
+    <div class="input-group boton">
+        <input type="text" id="messageText" class="form-control" placeholder="Typer your message" aria-label="Recipient's username" aria-describedby="button-addon2">
+        <div class="input-group-append">
+            <button class="btn btn-outline-primary" type="button" id="sendMessage">Send</button>
+        </div>
+    </div>
 </div>
 
+
+
+    
 <script type="text/javascript">
 
 
+
+    var countInt = parseInt('@Model.IdAgent');
     var agentAvailable = null;
     var agentFound = false;
     var intents = 0;
     var recurrente;
-    
+
+    var chatwindow = $('#chatMainWindow');
+
 
     var checkAgent = function () {
         $.ajax({
             url: "/Chat/GetAvailableAgent",
             data: { idRequest: '@Model.RequestId' },
                 success: function (data) {
-                    if (!data.result) {
+                    if (data.result) {
 
                         agentAvailable = data.data;
                         clearInterval(recurrente);
@@ -72,17 +102,73 @@
     };
 
 
+    function sendMessageButton() {
+
+
+
+        var size = chatwindow.height();
+
+        alert(chatwindow.height());
+
+        chatwindow.css("height", size+ 'px' );
+
+        
+        var sender = "customer";
+        if (countInt != 0) {
+            sender = "agent";
+        }
+
+        createMessage(sender, $('#messageText').val());
+
+        $('#messageText').val("");
+    }
+
     function retrieveAgentInfo(agentAvailable, intents) {
+
+
         console.log(agentAvailable);
+        debugger;
+
+        var chatLi = document.createElement("div");
+
+        chatLi.setAttribute("id", "ulidChat");
+        chatLi.append("The agent " + agentAvailable.AgentName + " is now available to help you");
+
+
+        chatwindow.prepend(chatLi);
+        chatwindow.css('display', 'block');
+
+
+        createMessage("agent", "It is nice to talk to you " + '@Model.CustomerName' + " please tell me how can I help you");
+    
+
+
+    }
+
+    function createMessage(sender,message) {
+
+
+        var name ='@Model.CustomerName';
+
+        if (sender == "agent") {
+            name = agentAvailable.AgentName;
+        }
+
+        $('#ulidChat').append("<div class=" + sender + "> <strong> " + name + " says: </strong> <br> " + message + " </div> </hr>")
+
     }
 
     $(function () {
 
-        var countInt = parseInt('@Model.IdAgent');
+
         // it means this is a customer, thats why we need to search an agent
         if (countInt == 0) {
             $('#divWelcomeAgent').css('display', 'none');
             recurrente =  setInterval(checkAgent, 1000);
         }
+
+        $('#sendMessage').on('click', function () {
+            sendMessageButton();
+        });
     });
 </script>
