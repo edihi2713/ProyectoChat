@@ -5,7 +5,7 @@
    
         background-color: slategray;
         display: none;
-        height: 100px;
+        height: 250px;
         width: 750px;
         padding: 10px;
         border-radius:5px;
@@ -13,13 +13,13 @@
 
   
     
-    .agent {
+    .other {
         float: left;
         text-align: left;
         width: 750px;
     }
 
-    .customer {
+    .me {
         float: right;
         text-align: right;
         width: 750px;
@@ -47,6 +47,12 @@
   <p>It uses utility classes for typography and spacing to space content out within the larger container.</p>
   <a class="btn btn-primary btn-lg" href="/Home/Index" role="button">Return</a>
 </div>
+<input type="hidden" id="conversationId" />
+<input type="hidden" id="theotherName" />
+<input type="hidden" id="myName" />
+<input type="hidden" id="idAgent" />
+<input type="hidden" id="whoAmI" />
+
 
 <div id="divWelcomeAgent" >
     <h2>Hello Agent</h2>
@@ -77,16 +83,22 @@
     var agentAvailable = null;
     var agentFound = false;
     var intents = 0;
-
+    var chatLi;
     // it stores the id where the message from both sides are gonna be.
     var idConversation = 0;
     var customerNameDisplay;
+    var personName = '@Model.CustomerName';
 
     // Function that searchs an agent for a customer.
     var recurrente;
 
     //function that is constanly 
     var recurrentAgent;
+
+
+
+    // function that search new messages.
+    var recurrentMessages;
 
     var sizeIncrement = 1;
     var chatwindow = $('#chatMainWindow');
@@ -123,6 +135,41 @@
             });
     };
 
+    var searchMessages = function(){
+        
+        console.log("Me ejecut");
+        if ($('#conversationId').val() == "0") {
+            console.log("No estoy asignado a conversación")
+            return;
+        }
+
+        $.ajax({
+            url: "/Chat/GetMessages",
+            data: { idConversation: $('#conversationId').val(), sender: $('#whoAmI').val() },
+            success: function (data) {
+
+                if (!data.isSuccess) {
+                    clearInterval(recurrentMessages);
+                }
+
+                if (data.newMessages != "") {
+                    var newMessages = JSON.parse(data.newMessages);
+
+                    for (var i = 0; i < newMessages.length; i++) {
+                        console.log(newMessages[i]);
+                        displayMessage(newMessages[i].Sender, newMessages[i].Message, false);
+
+                    }
+                }
+
+               
+            },
+            error: function (err) {
+                console.log(err);
+            }
+        });
+
+    }
 
     var checkUser = function () {
 
@@ -147,12 +194,7 @@
 
     function sendMessageButton() {
 
-        var divHeight = (sizeIncrement * 48 ) + 100;
-
-        alert(divHeight);
-
-        chatwindow.css("height", divHeight + 'px');
-
+    
         var sender = "customer";
         if (countInt != 0) {
             sender = "agent";
@@ -160,22 +202,56 @@
 
         createMessage(sender, $('#messageText').val());
 
+
+        displayMessage(sender, $('#messageText').val(),true);
         $('#messageText').val("");
 
-        sizeIncrement++;
+    }
+
+    function displayMessage(sender, message, me) {
+
+        var divHeight = chatwindow.height() + 60;
+
+
+        chatwindow.css("height", divHeight + 'px');
+
+
+        var cssClass = "other";
+        var senderName = $('#theotherName').val();
+
+        if (me) {
+            cssClass = "me";
+            senderName = $('#myName').val();
+        }
+        chatwindow.append("<div class=" + cssClass + "> <strong> " + senderName + " says: </strong> <br> " + message + " </div>")
     }
 
     function retrieveCustomerInfo(customerDisplayName,conversationId) {
+
+
+        alert("Setting the customer information");
+        $('#conversationId').val(conversationId);
+        //Store the other persons name
+        $('#theotherName').val(customerDisplayName);
+
 
         idConversation = conversationId;
         $('#customerInfoForAgent').append("<div class='alert alert-primary' role='alert'> You have been asigned to  " + customerDisplayName + "  </div>");
 
         $('#customerInfoForAgent').css('display', 'inline');
         chatwindow.css('display', 'inline-block');
-        console.log(conversationId);
     }
     function retrieveAgentInfo(agentAvailable,conversationId) {
 
+
+
+        //Store the other persons name
+        $('#theotherName').val(agentAvailable.AgentName);
+
+
+        $('#conversationId').val(conversationId);
+
+        
 
         console.log(agentAvailable);
         console.log(idConversation);
@@ -187,9 +263,7 @@
             return;
         }
 
-        var chatLi = document.createElement("div");
-
-        chatLi.setAttribute("id", "ulidChat");
+    
         chatLi.append("The agent " + agentAvailable.AgentName + " is now available to help you");
 
 
@@ -208,13 +282,13 @@
 
         var name ='@Model.CustomerName';
 
-        if (sender == "agent") {
-            name = agentAvailable.AgentName;
-        }
+        //if (sender == "agent") {
+        //    name = agentAvailable.AgentName;
+        //}
 
         var messa = {
             Message:message,
-            from: sender,
+            Sender: sender,
             IdConversation: idConversation,
             Read: false
         }
@@ -230,11 +304,15 @@
             data: data2send,
             contentType: "application/json; charset=utf-8",
             dataType: "json",
-            success: function (arg) { //call successfull
+            success: function (data) { //call successfull
 
+                console.log(data);
+                if (!data.result) {
+                    alert("It was not possible to send the message, please contact your administrator");
+                }
             },
             error: function (xhr) {
-                //error occurred
+                alert("An error has occured sending the message");
             }
         });
 
@@ -246,13 +324,31 @@
     $(function () {
 
 
+        // when the pages load, there  is no conversation
+        $('#conversationId').val('0');
+
+        console.log($('#conversationId').val());
+
+        //Store the persons name
+        $('#myName').val('@Model.CustomerName');
+
+        chatLi = document.createElement("div");
+        chatLi.setAttribute("id", "ulidChat");
+
+
+        if (true) {
+            
+        }
+
+
         // it means this is a customer, thats why we need to search an agent
         if (countInt == 0) {
             $('#divWelcomeAgent').css('display', 'none');
+            $('#whoAmI').val('customer');
             recurrente = setInterval(checkAgent, 1000);
         } else {
-
-            recurrentAgent = setInterval(checkUser, 2000);
+            $('#whoAmI').val('agent');
+            recurrentAgent = setInterval(checkUser, 1000);
             //$('.messageControls').css('display', 'none')
         }
 
@@ -264,6 +360,8 @@
             $('#menu').css('display', 'none');
             $('#login').css('display', 'none');
         }
+
+        recurrentMessages = setInterval(searchMessages,500);
 
     });
 </script>

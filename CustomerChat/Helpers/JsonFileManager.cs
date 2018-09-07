@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Web;
 
 namespace CustomerChat.Helpers
@@ -33,6 +34,10 @@ namespace CustomerChat.Helpers
                     file.Close();
                 }
             }
+
+            Thread.Sleep(2000);
+
+
             using (StreamReader r = new StreamReader(path))
             {
                 string json = r.ReadToEnd();

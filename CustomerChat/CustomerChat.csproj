@@ -196,6 +196,7 @@
     <Compile Include="Models\AgentAvailableModel.cs" />
     <Compile Include="Models\CustomerRequestViewModel.cs" />
     <Compile Include="Models\DocumentType.cs" />
+    <Compile Include="Models\MessagesModel.cs" />
     <Compile Include="Models\RequestAgentModel.cs" />
     <Compile Include="Models\RequestModel.cs" />
     <Compile Include="Models\RequestViewModel.cs" />

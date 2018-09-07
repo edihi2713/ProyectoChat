@@ -24,9 +24,14 @@ namespace CustomerChat.Controllers
 
            // Logic to login and make the agent available.
 
+
+            Random rnd = new Random();
+            var randomid = rnd.Next(1, 1000);
+
+
             string path = Server.MapPath("../JsonFilesTemporary/jsonAgentsAvailable.json");
 
-            agent.AgentId = 1001;
+            agent.AgentId = randomid;
 
 
             JsonFileManager.LoadJson(ref _agentes, path);

@@ -10,7 +10,7 @@ namespace CustomerChat.Models
         public int IdMessage { get; set; }
         public int IdConversation { get; set; }
         public string Message { get; set; }
-        public string from { get; set; }
+        public string Sender { get; set; }
         public bool Read { get; set; }
     }
 }
